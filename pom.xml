@@ -30,10 +30,16 @@
 	<!-- hash-identificacao: 571b60aa21ba4b4a06ceff6753dcc820827b142dcb79b050d1a41882aff37958 -->
 
 	<properties>
-		<java.version>25</java.version>
+		<java.version>17</java.version>
 	</properties>
 
 	<dependencies>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
