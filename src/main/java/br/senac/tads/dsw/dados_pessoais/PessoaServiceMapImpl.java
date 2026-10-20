@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 
@@ -65,11 +66,31 @@ public class PessoaServiceMapImpl implements PessoaService {
 
     @Override
     public PessoaDto alterarPessoa(String username, PessoaAlteracaoDto pessoaAlteracao) {
-        return null;
+        PessoaDto existente = mapPessoas.get(username);
+        if (existente == null) {
+            throw new NaoEncontradoException("Pessoa " + username + " não encontrada");
+        }
+        existente.setNome(pessoaAlteracao.getNome());
+        existente.setEmail(pessoaAlteracao.getEmail());
+        existente.setTelefone(pessoaAlteracao.getTelefone());
+        existente.setDataNascimento(pessoaAlteracao.getDataNascimento());
+        existente.setConhecimentos(pessoaAlteracao.getConhecimentos());
+        mapPessoas.put(username, existente);
+        return existente;
     }
 
     @Override
     public void removerPessoa(String username) {
         mapPessoas.remove(username);
+    }
+
+    @Override
+    public List<PessoaDto> buscarPorTermo(String termo) {
+        String termoLower = termo.toLowerCase();
+        return mapPessoas.values().stream()
+                .filter(p -> (p.getUsername() != null && p.getUsername().toLowerCase().contains(termoLower)) ||
+                             (p.getNome() != null && p.getNome().toLowerCase().contains(termoLower)) ||
+                             (p.getEmail() != null && p.getEmail().toLowerCase().contains(termoLower)))
+                .collect(Collectors.toList());
     }
 }
