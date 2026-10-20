@@ -27,21 +27,21 @@ public class PessoaController {
     }
 
     @GetMapping
-    public List<Pessoa> obterPessoas() {
+    public List<PessoaDto> obterPessoas() {
         return pessoaService.obterPessoas();
-    
-}
+    }
 
     @GetMapping("/{username}")
-    public Pessoa obterPessoa(@PathVariable("username") String username) {
-        Optional<Pessoa> optPessoa = pessoaService.obterPessoa(username);
+    public PessoaDto obterPessoa(@PathVariable("username") String username) {
+        Optional<PessoaDto> optPessoa = pessoaService.obterPessoa(username);
         if (optPessoa.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         return optPessoa.get();
     }
+
     @PostMapping("/sem-validacao")
-    public ResponseEntity<?> incluirNovo(@RequestBody Pessoa pessoa) {
+    public ResponseEntity<?> incluirNovo(@RequestBody PessoaDto pessoa) {
         pessoaService.incluirNovaPessoa(pessoa);
         URI location = ServletUriComponentsBuilder
                 .fromCurrentContextPath()
@@ -50,8 +50,9 @@ public class PessoaController {
                 .toUri();
         return ResponseEntity.created(location).build();
     }
+
     @PostMapping
-    public ResponseEntity<?> incluirNovoComValidacao(@RequestBody @Valid Pessoa pessoa) {
+    public ResponseEntity<?> incluirNovoComValidacao(@RequestBody @Valid PessoaDto pessoa) {
         pessoaService.incluirNovaPessoa(pessoa);
         URI location = ServletUriComponentsBuilder
                 .fromCurrentContextPath()
