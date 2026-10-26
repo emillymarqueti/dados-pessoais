@@ -1,10 +1,11 @@
 package br.senac.tads.dsw.dados_pessoais;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
-import java.net.URI;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,11 +13,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
 import jakarta.validation.Valid;
 
 @RestController 
@@ -32,6 +34,12 @@ public class PessoaController {
     @GetMapping
     public List<PessoaDto> obterPessoas() {
         return pessoaService.obterPessoas();
+    }
+
+    // GET /pessoas/busca?q=<termo>
+    @GetMapping("/busca")
+    public ResponseEntity<List<PessoaDto>> buscarPessoas(@RequestParam("q") String termo) {
+        return ResponseEntity.ok(pessoaService.buscarPessoas(termo));
     }
 
     @GetMapping("/{username}")

@@ -8,8 +8,6 @@ public interface PessoaService {
 
     List<PessoaDto> obterPessoas();
 
-    List<PessoaDto> buscarPorTermo(String termo);
-
     Optional<PessoaDto> obterPessoa(String username);
 
     PessoaDto incluirNovaPessoa(PessoaDto pessoa);
@@ -17,4 +15,7 @@ public interface PessoaService {
     PessoaDto alterarPessoa(String username, PessoaAlteracaoDto pessoaAlteracao);
     
     void removerPessoa(String username);
+
+    List<PessoaDto> buscarPessoas(String termo);
+
 }

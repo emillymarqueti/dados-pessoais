@@ -1,93 +1,37 @@
 package br.senac.tads.dsw.dados_pessoais;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import br.senac.tads.dsw.dados_pessoais.entidade.PessoaEntity;
 import br.senac.tads.dsw.dados_pessoais.entidade.ConhecimentoEntity;
-import br.senac.tads.dsw.dados_pessoais.repositorio.PessoaRepository;
+import br.senac.tads.dsw.dados_pessoais.entidade.PessoaEntity;
 import br.senac.tads.dsw.dados_pessoais.repositorio.ConhecimentoRepository;
+import br.senac.tads.dsw.dados_pessoais.repositorio.PessoaRepository;
 
-@Service
+// @Primary: quando há mais de uma implementação de PessoaService,
+// o Spring injeta ESTA por padrão (sem precisar alterar o controller)
 @Primary
+@Service
 public class PessoaServiceJpa implements PessoaService {
 
     private final PessoaRepository pessoaRepository;
     private final ConhecimentoRepository conhecimentoRepository;
 
-    public PessoaServiceJpa(PessoaRepository pessoaRepository, ConhecimentoRepository conhecimentoRepository) {
+    public PessoaServiceJpa(PessoaRepository pessoaRepository,
+            ConhecimentoRepository conhecimentoRepository) {
         this.pessoaRepository = pessoaRepository;
         this.conhecimentoRepository = conhecimentoRepository;
     }
 
-    @Override
-    public List<PessoaDto> obterPessoas() {
-        return pessoaRepository.findAll().stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public Optional<PessoaDto> obterPessoa(String username) {
-        return pessoaRepository.findByUsername(username)
-                .map(this::toDto);
-    }
-
-    @Override
-    public PessoaDto incluirNovaPessoa(PessoaDto pessoaDto) {
-        PessoaEntity entity = toEntity(pessoaDto);
-        PessoaEntity salva = pessoaRepository.save(entity);
-        return toDto(salva);
-    }
-
-    @Override
-    public PessoaDto alterarPessoa(String username, PessoaAlteracaoDto dto) {
-        PessoaEntity entity = pessoaRepository.findByUsername(username)
-                .orElseThrow(() -> new NaoEncontradoException("Pessoa " + username + " não encontrada"));
-
-        entity.setNome(dto.getNome());
-        entity.setEmail(dto.getEmail());
-        entity.setTelefone(dto.getTelefone());
-        entity.setDataNascimento(dto.getDataNascimento());
-
-        // Atualizar conhecimentos se necessário
-        if (dto.getConhecimentos() != null) {
-            entity.getConhecimentos().clear();
-            for (String nomeConhecimento : dto.getConhecimentos()) {
-                ConhecimentoEntity conhecimento = conhecimentoRepository.findByNome(nomeConhecimento)
-                        .orElseGet(() -> conhecimentoRepository.save(new ConhecimentoEntity(nomeConhecimento)));
-                entity.getConhecimentos().add(conhecimento);
-            }
-        }
-
-        PessoaEntity atualizada = pessoaRepository.save(entity);
-        return toDto(atualizada);
-    }
-
-    @Override
-    public void removerPessoa(String username) {
-        PessoaEntity entity = pessoaRepository.findByUsername(username)
-                .orElseThrow(() -> new NaoEncontradoException("Pessoa " + username + " não encontrada"));
-        pessoaRepository.delete(entity);
-    }
-
-    @Override
-    public List<PessoaDto> buscarPorTermo(String termo) {
-        return pessoaRepository.buscarPorTermo(termo).stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
-    }
-
-    // Métodos auxiliares de conversão (Entity <-> DTO)
+    // Métodos auxiliares: conversão entre Entity e DTO
+    //
+    // PessoaEntity -> PessoaDto
     private PessoaDto toDto(PessoaEntity entity) {
-        List<String> conhecimentos = entity.getConhecimentos() != null 
-            ? entity.getConhecimentos().stream().map(ConhecimentoEntity::getNome).collect(Collectors.toList())
-            : List.of();
-
         PessoaDto dto = new PessoaDto();
         dto.setId(entity.getId());
         dto.setUsername(entity.getUsername());
@@ -95,11 +39,18 @@ public class PessoaServiceJpa implements PessoaService {
         dto.setEmail(entity.getEmail());
         dto.setTelefone(entity.getTelefone());
         dto.setDataNascimento(entity.getDataNascimento());
-        dto.setSenha(entity.getSenha());
-        dto.setConhecimentos(conhecimentos);
+
+        // Extrai apenas os nomes (String) de cada ConhecimentoEntity
+        // Versão imperativa: veja o Anexo A para a versão equivalente com streams
+        List<String> nomes = new ArrayList<>();
+        for (ConhecimentoEntity c : entity.getConhecimentos()) {
+            nomes.add(c.getNome());
+        }
+        dto.setConhecimentos(nomes);
         return dto;
     }
 
+    // PessoaDto -> PessoaEntity (para inserção)
     private PessoaEntity toEntity(PessoaDto dto) {
         PessoaEntity entity = new PessoaEntity();
         entity.setUsername(dto.getUsername());
@@ -111,12 +62,104 @@ public class PessoaServiceJpa implements PessoaService {
 
         if (dto.getConhecimentos() != null) {
             for (String nomeConhecimento : dto.getConhecimentos()) {
-                ConhecimentoEntity conhecimento = conhecimentoRepository.findByNome(nomeConhecimento)
-                        .orElseGet(() -> conhecimentoRepository.save(new ConhecimentoEntity(nomeConhecimento)));
-                entity.getConhecimentos().add(conhecimento);
+                Optional<ConhecimentoEntity> optConh =
+                        conhecimentoRepository.findByNomeIgnoreCase(nomeConhecimento);
+                if (optConh.isPresent()) {
+                    entity.getConhecimentos().add(optConh.get());
+                }
+            }
+        }
+        return entity;
+    }
+
+    // Implementação da nova lógica do Service integrado aos Repositories
+    @Override
+    @Transactional(readOnly = true) // readOnly = true: otimiza leituras (sem necessidade de flush)
+    public List<PessoaDto> obterPessoas() {
+        // Versão imperativa: veja o Anexo A para a versão equivalente com streams
+        List<PessoaDto> resultado = new ArrayList<>();
+        for (PessoaEntity entity : pessoaRepository.findAll()) {
+            PessoaDto dto = toDto(entity); // converte cada PessoaEntity para PessoaDto
+            resultado.add(dto);
+        }
+        return resultado;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<PessoaDto> obterPessoa(String username) {
+        // Versão imperativa: veja o Anexo A para a versão equivalente com Optional.map()
+        Optional<PessoaEntity> optEntity = pessoaRepository.findByUsername(username);
+        if (optEntity.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(toDto(optEntity.get())); // converte para DTO se encontrou
+    }
+
+    @Override
+    @Transactional
+    public PessoaDto incluirNovaPessoa(PessoaDto dto) {
+        PessoaEntity entity = toEntity(dto); // converte DTO para entidade
+        PessoaEntity salva = pessoaRepository.save(entity); // persiste no banco (INSERT)
+        return toDto(salva); // retorna DTO com o ID gerado pelo banco
+    }
+
+    @Override
+    @Transactional
+    public PessoaDto alterarPessoa(String username, PessoaAlteracaoDto pessoaAlteracao) {
+        // Busca a entidade, lança NaoEncontradoException se não existir
+        // Versão imperativa: veja o Anexo A para a versão equivalente com orElseThrow()
+        Optional<PessoaEntity> optEntity = pessoaRepository.findByUsername(username);
+        if (optEntity.isEmpty()) {
+            throw new NaoEncontradoException("Pessoa " + username + " não encontrada");
+        }
+        PessoaEntity entity = optEntity.get();
+
+        // Atualiza os campos simples
+        entity.setNome(pessoaAlteracao.getNome());
+        entity.setEmail(pessoaAlteracao.getEmail());
+        entity.setTelefone(pessoaAlteracao.getTelefone());
+        entity.setDataNascimento(pessoaAlteracao.getDataNascimento());
+
+        // Atualiza os conhecimentos:
+        // 1. Limpa a lista atual: remove as entradas da tabela de junção tb_pessoas_conhecimentos
+        entity.getConhecimentos().clear();
+
+        // 2. Adiciona os novos conhecimentos (reutilizando entidades já existentes)
+        if (pessoaAlteracao.getConhecimentos() != null) {
+            for (String nomeConhecimento : pessoaAlteracao.getConhecimentos()) {
+                Optional<ConhecimentoEntity> optConh =
+                        conhecimentoRepository.findByNomeIgnoreCase(nomeConhecimento);
+                if (optConh.isPresent()) {
+                    entity.getConhecimentos().add(optConh.get());
+                }
             }
         }
 
-        return entity;
+        PessoaEntity salva = pessoaRepository.save(entity); // persiste as alterações (UPDATE)
+        return toDto(salva);
+    }
+
+    @Override
+    @Transactional
+    public void removerPessoa(String username) {
+        // Versão imperativa: veja o Anexo A para a versão equivalente com orElseThrow()
+        Optional<PessoaEntity> optEntity = pessoaRepository.findByUsername(username);
+        if (optEntity.isEmpty()) {
+            throw new NaoEncontradoException("Pessoa " + username + " não encontrada");
+        }
+        PessoaEntity entity = optEntity.get();
+        pessoaRepository.delete(entity); // DELETE no banco (cascade remove os conhecimentos também)
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PessoaDto> buscarPessoas(String termo) {
+        // Versão imperativa: veja o Anexo A para a versão equivalente com streams
+        List<PessoaDto> resultado = new ArrayList<>();
+        for (PessoaEntity entity : pessoaRepository.buscarPorTermo(termo)) {
+            resultado.add(toDto(entity));
+        }
+        return resultado;
     }
 }
