@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Pessoas</title>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 500px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+
+    .campo {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="date"],
+    input[type="password"] {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+
+    .error-msg {
+      color: red;
+      font-size: 0.85em;
+      margin: 5px 0 0;
+      min-height: 1em;
+    }
+
+    .mensagem {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    fieldset {
+      border: none;
+      padding: 0;
+    }
+
+    .checkbox-group {
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>Cadastro de Pessoa</h2>
+
+<form id="pessoaForm" novalidate>
+
+  <div class="campo">
+    <label for="nome">Nome Completo:</label>
+    <input type="text" id="nome" name="nome" maxlength="100">
+    <p id="err-nome" class="error-msg"></p>
+  </div>
+
+  <div class="campo">
+    <label for="username">Username:</label>
+    <input type="text" id="username" name="username" maxlength="64">
+    <p id="err-username" class="error-msg"></p>
+  </div>
+
+  <div class="campo">
+    <label for="email">E-mail:</label>
+    <input type="email" id="email" name="email" maxlength="100">
+    <p id="err-email" class="error-msg"></p>
+  </div>
+
+  <div class="campo">
+    <label for="telefone">Telefone:</label>
+    <input type="text" id="telefone" name="telefone">
+    <p id="err-telefone" class="error-msg"></p>
+  </div>
+
+  <div class="campo">
+    <label for="dataNascimento">Data de Nascimento:</label>
+    <input type="date" id="dataNascimento" name="dataNascimento">
+    <p id="err-dataNascimento" class="error-msg"></p>
+  </div>
+
+  <div class="campo">
+    <label for="senha">Senha:</label>
+    <input type="password" id="senha" name="senha">
+    <p id="err-senha" class="error-msg"></p>
+  </div>
+
+  <div class="campo">
+    <label for="senhaRepeticao">Repetir Senha:</label>
+    <input type="password" id="senhaRepeticao" name="senhaRepeticao">
+    <p id="err-senhaRepeticao" class="error-msg"></p>
+  </div>
+
+  <div class="campo checkbox-group">
+    <fieldset>
+      <legend><strong>Conhecimentos:</strong></legend>
+
+      <label>
+        <input type="checkbox" name="conhecimentos" value="Java"> Java
+      </label><br>
+
+      <label>
+        <input type="checkbox" name="conhecimentos" value="Spring Boot"> Spring Boot
+      </label><br>
+
+      <label>
+        <input type="checkbox" name="conhecimentos" value="JavaScript"> JavaScript
+      </label><br>
+
+      <label>
+        <input type="checkbox" name="conhecimentos" value="Angular"> Angular
+      </label><br>
+
+      <label>
+        <input type="checkbox" name="conhecimentos" value="React"> React
+      </label>
+
+      <p id="err-conhecimentos" class="error-msg"></p>
+    </fieldset>
+  </div>
+
+  <button type="submit">Cadastrar Pessoa</button>
+
+  <p id="mensagem" class="mensagem" role="alert"></p>
+
+</form>
+
+<script>
+
+  // Limita a data de nascimento ao dia atual
+  const hoje = new Date();
+
+  const ano = hoje.getFullYear();
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoje.getDate()).padStart(2, '0');
+
+  document.getElementById('dataNascimento')
+    .setAttribute('max', `${ano}-${mes}-${dia}`);
+
+  // Evento de envio do formulário
+  document.getElementById('pessoaForm')
+    .addEventListener('submit', async (evt) => {
+
+      evt.preventDefault();
+
+      limparErros();
+
+      const formEl = evt.target;
+
+      // Coleta os conhecimentos selecionados
+      const conhecimentos = [];
+
+      const opcoes = document.querySelectorAll(
+        '[name="conhecimentos"]:checked'
+      );
+
+      for (const opcao of opcoes) {
+        conhecimentos.push(opcao.value);
+      }
+
+      // Monta o objeto com os dados do formulário
+      const dados = {
+        nome: formEl.elements.namedItem('nome').value,
+        username: formEl.elements.namedItem('username').value,
+        email: formEl.elements.namedItem('email').value,
+        telefone: formEl.elements.namedItem('telefone').value,
+        dataNascimento: formEl.elements.namedItem('dataNascimento').value,
+        senha: formEl.elements.namedItem('senha').value,
+        senhaRepeticao: formEl.elements.namedItem('senhaRepeticao').value,
+        conhecimentos: conhecimentos
+      };
+
+      try {
+
+        const response = await fetch('/pessoas', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(dados)
+        });
+
+        // Lê a resposta do servidor
+        const resposta = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+
+          // Exibe erros de validação, quando disponíveis
+          const erros = resposta.errors
+            || resposta['validation-errors']
+            || resposta.fieldErrors;
+
+          if (Array.isArray(erros)) {
+            exibirErros(erros);
+          } else {
+            document.getElementById('mensagem').textContent =
+              resposta.detail
+              || resposta.message
+              || 'Não foi possível cadastrar. Verifique os dados informados.';
+          }
+
+          return;
+        }
+
+        alert('Cadastro realizado com sucesso!');
+
+        formEl.reset();
+
+        limparErros();
+
+      } catch (error) {
+
+        document.getElementById('mensagem').textContent =
+          'Não foi possível conectar ao servidor.';
+
+      }
+
+    });
+
+  // Limpa as mensagens de erro
+  function limparErros() {
+
+    document.querySelectorAll('.error-msg').forEach(
+      p => p.textContent = ''
+    );
+
+    document.getElementById('mensagem').textContent = '';
+  }
+
+  // Exibe os erros retornados pelo servidor
+  function exibirErros(erros) {
+
+    for (const erro of erros) {
+
+      const campo = erro.field || erro.fieldName;
+      const mensagem = erro.defaultMessage || erro.message;
+
+      const elemento = document.getElementById(`err-${campo}`);
+
+      if (elemento) {
+        elemento.textContent = mensagem;
+      } else {
+        document.getElementById('mensagem').textContent +=
+          mensagem + ' ';
+      }
+    }
+  }
+
+</script>
+
+</body>
+</html>

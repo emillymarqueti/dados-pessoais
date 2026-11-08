@@ -21,7 +21,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import jakarta.validation.Valid;
 
-@RestController 
+@RestController
 @RequestMapping("/pessoas")
 public class PessoaController {
 

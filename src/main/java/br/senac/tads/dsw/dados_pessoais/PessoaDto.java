@@ -1,83 +1,122 @@
+
 package br.senac.tads.dsw.dados_pessoais;
 
 import java.time.LocalDate;
 import java.util.List;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Size;
+
+import br.senac.tads.dsw.dados_pessoais.validacao.SenhasIguais;
+
+@SenhasIguais
 public class PessoaDto {
 
-    private Integer id;
-    private String username;
-    private String nome;
-    private String email;
-    private String telefone;
-    private LocalDate dataNascimento;
-    private String senha;
-    private List<String> conhecimentos;
+	private Integer id;
 
-    public PessoaDto() {
-    }
+	@NotBlank(message = "O username é obrigatório")
+	@Size(max = 64, message = "O username deve ter no máximo 64 caracteres")
+	private String username;
 
-    public Integer getId() {
-        return id;
-    }
+	@NotBlank(message = "O nome é obrigatório")
+	@Size(max = 100, message = "O nome deve ter no máximo 100 caracteres")
+	private String nome;
 
-    public void setId(Integer id) {
-        this.id = id;
-    }
+	@NotBlank(message = "O e-mail é obrigatório")
+	@Email(message = "Informe um e-mail válido")
+	@Size(max = 100, message = "O e-mail deve ter no máximo 100 caracteres")
+	private String email;
 
-    public String getUsername() {
-        return username;
-    }
+	@Size(max = 20, message = "O telefone deve ter no máximo 20 caracteres")
+	private String telefone;
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
+	@NotNull(message = "A data de nascimento é obrigatória")
+	@PastOrPresent(message = "A data de nascimento não pode ser futura")
+	private LocalDate dataNascimento;
 
-    public String getNome() {
-        return nome;
-    }
+	@NotBlank(message = "A senha é obrigatória")
+	private String senha;
 
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
+	@NotBlank(message = "A confirmação da senha é obrigatória")
+	private String senhaRepeticao;
 
-    public String getEmail() {
-        return email;
-    }
+	private List<String> conhecimentos;
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+	public PessoaDto() {
+	}
 
-    public String getTelefone() {
-        return telefone;
-    }
+	public Integer getId() {
+		return id;
+	}
 
-    public void setTelefone(String telefone) {
-        this.telefone = telefone;
-    }
+	public void setId(Integer id) {
+		this.id = id;
+	}
 
-    public LocalDate getDataNascimento() {
-        return dataNascimento;
-    }
+	public String getUsername() {
+		return username;
+	}
 
-    public void setDataNascimento(LocalDate dataNascimento) {
-        this.dataNascimento = dataNascimento;
-    }
+	public void setUsername(String username) {
+		this.username = username;
+	}
 
-    public String getSenha() {
-        return senha;
-    }
+	public String getNome() {
+		return nome;
+	}
 
-    public void setSenha(String senha) {
-        this.senha = senha;
-    }
+	public void setNome(String nome) {
+		this.nome = nome;
+	}
 
-    public List<String> getConhecimentos() {
-        return conhecimentos;
-    }
+	public String getEmail() {
+		return email;
+	}
 
-    public void setConhecimentos(List<String> conhecimentos) {
-        this.conhecimentos = conhecimentos;
-    }
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public String getTelefone() {
+		return telefone;
+	}
+
+	public void setTelefone(String telefone) {
+		this.telefone = telefone;
+	}
+
+	public LocalDate getDataNascimento() {
+		return dataNascimento;
+	}
+
+	public void setDataNascimento(LocalDate dataNascimento) {
+		this.dataNascimento = dataNascimento;
+	}
+
+	public String getSenha() {
+		return senha;
+	}
+
+	public void setSenha(String senha) {
+		this.senha = senha;
+	}
+
+	public String getSenhaRepeticao() {
+		return senhaRepeticao;
+	}
+
+	public void setSenhaRepeticao(String senhaRepeticao) {
+		this.senhaRepeticao = senhaRepeticao;
+	}
+
+	public List<String> getConhecimentos() {
+		return conhecimentos;
+	}
+
+	public void setConhecimentos(List<String> conhecimentos) {
+		this.conhecimentos = conhecimentos;
+	}
 }
