@@ -1,68 +1,43 @@
 package br.senac.tads.dsw.dados_pessoais.seguranca;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-// Serviço responsável por localizar usuários em memória.
+import br.senac.tads.dsw.dados_pessoais.entidade.UsuarioSistemaEntity;
+import br.senac.tads.dsw.dados_pessoais.repositorio.UsuarioSistemaRepository;
+
 @Service
 public class UsuarioSistemaService implements UserDetailsService {
 
-	private final Map<String, UserDetails> usuarios;
+	private final UsuarioSistemaRepository usuarioSistemaRepository;
 
-	public UsuarioSistemaService(PasswordEncoder passwordEncoder) {
-		this.usuarios = new HashMap<>();
-
-		// Administrador: acesso total
-		this.usuarios.put("admin", new UsuarioSistema(
-			"admin",
-			passwordEncoder.encode("Abcd%12345"),
-			List.of(
-				new SimpleGrantedAuthority("ROLE_ADMIN"),
-				new SimpleGrantedAuthority("ROLE_GERENTE"),
-				new SimpleGrantedAuthority("ROLE_USER")
-			)
-		));
-
-		// Gerente: acesso intermediário
-		this.usuarios.put("user1", new UsuarioSistema(
-			"user1",
-			passwordEncoder.encode("Abcd%12345"),
-			List.of(
-				new SimpleGrantedAuthority("ROLE_GERENTE"),
-				new SimpleGrantedAuthority("ROLE_USER")
-			)
-		));
-
-		// Usuário comum: acesso básico
-		this.usuarios.put("user2", new UsuarioSistema(
-			"user2",
-			passwordEncoder.encode("Abcd%12345"),
-			List.of(
-				new SimpleGrantedAuthority("ROLE_USER")
-			)
-		));
+	public UsuarioSistemaService(UsuarioSistemaRepository usuarioSistemaRepository) {
+		this.usuarioSistemaRepository = usuarioSistemaRepository;
 	}
 
 	@Override
 	public UserDetails loadUserByUsername(String username)
 		throws UsernameNotFoundException {
 
-		UserDetails usuario = usuarios.get(username);
+		UsuarioSistemaEntity usuario = usuarioSistemaRepository.findByUsername(username)
+			.orElseThrow(() -> new UsernameNotFoundException(
+				"Usuário não encontrado: " + username));
 
-		if (usuario == null) {
-			throw new UsernameNotFoundException(
-				"Usuário não encontrado: " + username
-			);
-		}
+		List<GrantedAuthority> authorities = usuario.getRoles()
+			.stream()
+			.map(role -> (GrantedAuthority) new SimpleGrantedAuthority(role.getNome()))
+			.toList();
 
-		return usuario;
+		return new UsuarioSistema(
+			usuario.getUsername(),
+			usuario.getSenha(),
+			authorities
+		);
 	}
 }
